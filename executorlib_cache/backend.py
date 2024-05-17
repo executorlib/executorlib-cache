@@ -22,9 +22,12 @@ def execute_hdf5_file(file_name):
                     "args": h5io.read_hdf5(
                         fname=hdf, title="input_args", slash="ignore"
                     ),
-                    "kwargs": h5io.read_hdf5(
-                        fname=hdf, title="input_kwargs", slash="ignore"
-                    ),
+                    "kwargs": {
+                        group: h5io.read_hdf5(
+                            fname=hdf, title="input_kwargs/" + group, slash="ignore"
+                        )
+                        for group in hdf["input_kwargs"].keys()
+                    },
                 }
             )
         elif "input_args" in hdf:
@@ -46,9 +49,12 @@ def execute_hdf5_file(file_name):
                         h5io.read_hdf5(fname=hdf, title="function", slash="ignore")
                     ),
                     "args": [],
-                    "kwargs": h5io.read_hdf5(
-                        fname=hdf, title="input_kwargs", slash="ignore"
-                    ),
+                    "kwargs": {
+                        group: h5io.read_hdf5(
+                            fname=hdf, title="input_kwargs/" + group, slash="ignore"
+                        )
+                        for group in hdf["input_kwargs"].keys()
+                    },
                 }
             )
         else:
