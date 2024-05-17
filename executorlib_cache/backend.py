@@ -4,11 +4,19 @@ import cloudpickle
 import h5io
 import h5py
 
-from executorlib_cache.shared import write_to_h5_file
+from executorlib_cache.shared import write_to_h5_file, FutureItem
 
 
 def apply_funct(apply_dict):
-    return apply_dict["fn"].__call__(*apply_dict["args"], **apply_dict["kwargs"])
+    args = [
+        arg if not isinstance(arg, FutureItem) else arg.result()
+        for arg in apply_dict["args"]
+    ]
+    kwargs = {
+        key: arg if not isinstance(arg, FutureItem) else arg.result()
+        for key, arg in apply_dict["kwargs"].items()
+    }
+    return apply_dict["fn"].__call__(*args, **kwargs)
 
 
 def execute_hdf5_file(file_name):
@@ -19,15 +27,12 @@ def execute_hdf5_file(file_name):
                     "fn": cloudpickle.loads(
                         h5io.read_hdf5(fname=hdf, title="function", slash="ignore")
                     ),
-                    "args": h5io.read_hdf5(
-                        fname=hdf, title="input_args", slash="ignore"
+                    "args": cloudpickle.loads(
+                        h5io.read_hdf5(fname=hdf, title="input_args", slash="ignore")
                     ),
-                    "kwargs": {
-                        group: h5io.read_hdf5(
-                            fname=hdf, title="input_kwargs/" + group, slash="ignore"
-                        )
-                        for group in hdf["input_kwargs"].keys()
-                    },
+                    "kwargs": cloudpickle.loads(
+                        h5io.read_hdf5(fname=hdf, title="input_kwargs", slash="ignore")
+                    ),
                 }
             )
         elif "input_args" in hdf:
@@ -36,8 +41,8 @@ def execute_hdf5_file(file_name):
                     "fn": cloudpickle.loads(
                         h5io.read_hdf5(fname=hdf, title="function", slash="ignore")
                     ),
-                    "args": h5io.read_hdf5(
-                        fname=hdf, title="input_args", slash="ignore"
+                    "args": cloudpickle.loads(
+                        h5io.read_hdf5(fname=hdf, title="input_args", slash="ignore")
                     ),
                     "kwargs": {},
                 }
@@ -49,12 +54,9 @@ def execute_hdf5_file(file_name):
                         h5io.read_hdf5(fname=hdf, title="function", slash="ignore")
                     ),
                     "args": [],
-                    "kwargs": {
-                        group: h5io.read_hdf5(
-                            fname=hdf, title="input_kwargs/" + group, slash="ignore"
-                        )
-                        for group in hdf["input_kwargs"].keys()
-                    },
+                    "kwargs": cloudpickle.loads(
+                        h5io.read_hdf5(fname=hdf, title="input_kwargs", slash="ignore")
+                    ),
                 }
             )
         else:

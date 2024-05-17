@@ -1,3 +1,4 @@
+from concurrent.futures import Future
 import hashlib
 import os
 import queue
@@ -10,12 +11,31 @@ import h5py
 import numpy as np
 
 
+class FutureItem:
+    def __init__(self, file_name: str):
+        self._file_name = file_name
+
+    def result(self):
+        exec_flag, result = _check_output_helper(file_name=self._file_name)
+        if exec_flag:
+            return result
+        else:
+            return self.result()
+
+    def done(self):
+        return _check_output_helper(file_name=self._file_name)[0]
+
+
 def get_execute_command(file_name):
     return ["python", "-m", "executorlib_cache", file_name]
 
 
-def execute_in_subprocess(command):
-    subprocess.Popen(command, universal_newlines=True)
+def execute_in_subprocess(command, task_dependent_lst=[]):
+    while len(task_dependent_lst) > 0:
+        task_dependent_lst = [
+            task for task in task_dependent_lst if task.poll() is None
+        ]
+    return subprocess.Popen(command, universal_newlines=True)
 
 
 def get_hash(binary):
@@ -36,16 +56,62 @@ def check_output(task_key, future_obj, cache_directory):
     file_name = os.path.join(cache_directory, task_key + ".h5out")
     if not os.path.exists(file_name):
         return future_obj
-    with h5py.File(file_name, "r") as hdf:
-        if "output" in hdf:
-            future_obj.set_result(
-                h5io.read_hdf5(fname=hdf, title="output", slash="ignore")
-            )
+    exec_flag, result = _check_output_helper(file_name=file_name)
+    if exec_flag:
+        future_obj.set_result(result)
     return future_obj
 
 
+def _check_output_helper(file_name):
+    with h5py.File(file_name, "r") as hdf:
+        if "output" in hdf:
+            return True, cloudpickle.loads(h5io.read_hdf5(fname=hdf, title="output", slash="ignore"))
+        else:
+            return False, None
+
+
+def convert_future(future_obj, memory_dict, file_name_dict):
+    for k, v in memory_dict.items():
+        if future_obj == v:
+            return FutureItem(file_name=file_name_dict[k])
+    return future_obj.result()
+
+
+def convert_args_and_kwargs(task_dict, memory_dict, file_name_dict):
+    task_args = []
+    task_kwargs = {}
+    future_wait_key_lst = []
+    for arg in task_dict["args"]:
+        if isinstance(arg, Future):
+            match_found = False
+            for k, v in memory_dict.items():
+                if arg == v:
+                    task_args.append(FutureItem(file_name=file_name_dict[k]))
+                    future_wait_key_lst.append(k)
+                    match_found = True
+                    break
+            if not match_found:
+                task_args.append(arg.result())
+        else:
+            task_args.append(arg)
+    for key, arg in task_dict["kwargs"].items():
+        if isinstance(arg, Future):
+            match_found = False
+            for k, v in memory_dict.items():
+                if arg == v:
+                    task_kwargs[key] = FutureItem(file_name=file_name_dict[k])
+                    future_wait_key_lst.append(k)
+                    match_found = True
+                    break
+            if not match_found:
+                task_kwargs[key] = arg.result()
+        else:
+            task_kwargs[key] = arg
+    return task_args, task_kwargs, future_wait_key_lst
+
+
 def execute_tasks_h5(future_queue, cache_directory, execute_function):
-    memory_dict = {}
+    memory_dict, process_dict, file_name_dict = {}, {}, {}
     while True:
         task_dict = None
         try:
@@ -61,14 +127,27 @@ def execute_tasks_h5(future_queue, cache_directory, execute_function):
             future_queue.join()
             break
         elif task_dict is not None:
+            task_args, task_kwargs, future_wait_key_lst = convert_args_and_kwargs(
+                task_dict=task_dict,
+                memory_dict=memory_dict,
+                file_name_dict=file_name_dict,
+            )
             task_key, data_dict = serialize_funct_h5(
-                task_dict["fn"], *task_dict["args"], **task_dict["kwargs"]
+                task_dict["fn"], *task_args, **task_kwargs
             )
             if task_key not in memory_dict.keys():
                 if task_key + ".h5out" not in os.listdir(cache_directory):
                     file_name = os.path.join(cache_directory, task_key + ".h5in")
                     write_to_h5_file(file_name=file_name, data_dict=data_dict)
-                    execute_function(command=get_execute_command(file_name=file_name))
+                    process_dict[task_key] = execute_function(
+                        command=get_execute_command(file_name=file_name),
+                        task_dependent_lst=[
+                            process_dict[k] for k in future_wait_key_lst
+                        ],
+                    )
+                file_name_dict[task_key] = os.path.join(
+                    cache_directory, task_key + ".h5out"
+                )
                 memory_dict[task_key] = task_dict["future"]
             future_queue.task_done()
         else:
@@ -94,25 +173,21 @@ def write_to_h5_file(file_name, data_dict):
             elif data_key == "args":
                 h5io.write_hdf5(
                     fname=fname,
-                    data=data_value,
+                    data=np.void(cloudpickle.dumps(data_value)),
                     overwrite="update",
                     title="input_args",
-                    slash="ignore",
                 )
             elif data_key == "kwargs":
-                for k, v in data_value.items():
-                    h5io.write_hdf5(
-                        fname=fname,
-                        data=v,
-                        overwrite="update",
-                        title="input_kwargs/" + k,
-                        slash="ignore",
-                    )
+                h5io.write_hdf5(
+                    fname=fname,
+                    data=np.void(cloudpickle.dumps(data_value)),
+                    overwrite="update",
+                    title="input_kwargs",
+                )
             elif data_key == "output":
                 h5io.write_hdf5(
                     fname=fname,
-                    data=data_value,
+                    data=np.void(cloudpickle.dumps(data_value)),
                     overwrite="update",
                     title="output",
-                    slash="ignore",
                 )
