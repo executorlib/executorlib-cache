@@ -1,0 +1,28 @@
+name: Pip check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2.2.0
+      with:
+        python-version: '3.12'
+        mamba-version: "*"
+        channels: conda-forge
+        miniforge-variant: Mambaforge
+        channel-priority: strict
+        auto-update-conda: true
+        environment-file: .ci_support/environment.yml
+    - name: Setup
+      shell: bash -l {0}
+      run: |
+        pip install versioneer[toml]==0.29
+        pip install . --no-deps --no-build-isolation
+        pip check

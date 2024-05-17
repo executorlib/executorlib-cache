@@ -1,0 +1,51 @@
+[build-system]
+requires = ["cloudpickle", "executorlib-core", "numpy", "h5py", "h5io", "setuptools",  "versioneer[toml]==0.29"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "executorlib-cache"
+description = "File cache based executor using cloudpickle and h5py."
+authors = [
+    { name = "Jan Janssen", email = "janssen@mpie.de" },
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["pyiron"]
+requires-python = ">=3.9, <3.13"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "cloudpickle==3.0.0",
+    "executorlib-core==0.0.1",
+    "numpy==1.26.4",
+    "h5py==3.11.0",
+    "h5io==0.2.2",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/executorlib/executorlib-cache"
+Documentation = "https://executorlib-cache.readthedocs.io"
+Repository = "https://github.com/executorlib/executorlib-cache"
+
+[tool.setuptools.packages.find]
+include = ["executorlib_cache*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "executorlib_cache.__version__"}
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440-pre"
+versionfile_source = "executorlib_cache/_version.py"
+parentdir_prefix = "executorlib_cache"
+tag_prefix = "executorlib-cache-"

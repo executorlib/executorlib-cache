@@ -1,0 +1,12 @@
+channels:
+- conda-forge
+dependencies:
+- nbsphinx
+- sphinx
+- sphinx_rtd_theme
+- myst-parser
+- cloudpickle =3.0.0
+- executorlib-core =0.0.1
+- numpy =1.26.4
+- h5py =3.11.0
+- h5io =0.2.2
