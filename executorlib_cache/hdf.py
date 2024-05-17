@@ -1,10 +1,19 @@
+from typing import Optional, Tuple
+
 import cloudpickle
 import h5io
 import h5py
 import numpy as np
 
 
-def dump(file_name, data_dict):
+def dump(file_name: str, data_dict: dict):
+    """
+    Dump data dictionary into HDF5 file
+
+    Args:
+        file_name (str): file name of the HDF5 file as absolute path
+        data_dict (dict): dictionary containing the python function to be executed {"fn": ..., "args": (), "kwargs": {}}
+    """
     with h5py.File(file_name, "a") as fname:
         for data_key, data_value in data_dict.items():
             if data_key == "fn":
@@ -37,7 +46,16 @@ def dump(file_name, data_dict):
                 )
 
 
-def load(file_name):
+def load(file_name: str) -> dict:
+    """
+    Load data dictionary from HDF5 file
+
+    Args:
+        file_name (str): file name of the HDF5 file as absolute path
+
+    Returns:
+        dict: dictionary containing the python function to be executed {"fn": ..., "args": (), "kwargs": {}}
+    """
     with h5py.File(file_name, "r") as hdf:
         if "input_args" in hdf and "input_kwargs" in hdf:
             return {
@@ -75,7 +93,16 @@ def load(file_name):
             raise TypeError
 
 
-def check_output(file_name):
+def check_output(file_name: str) -> Tuple[bool, Optional]:
+    """
+    Check if output is available in the HDF5 file
+
+    Args:
+        file_name (str): file name of the HDF5 file as absolute path
+
+    Returns:
+        (bool, ...): boolean flag if output is available and the output itself
+    """
     with h5py.File(file_name, "r") as hdf:
         if "output" in hdf:
             return True, cloudpickle.loads(

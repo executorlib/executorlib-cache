@@ -4,7 +4,13 @@ from executorlib_cache.hdf import dump, load
 from executorlib_cache.shared import FutureItem
 
 
-def execute_hdf5_file(file_name):
+def execute_task_in_file(file_name: str):
+    """
+    Execute the task stored in a given HDF5 file
+
+    Args:
+        file_name (str): file name of the HDF5 file as absolute path
+    """
     apply_dict = load(file_name=file_name)
     args = [
         arg if not isinstance(arg, FutureItem) else arg.result()

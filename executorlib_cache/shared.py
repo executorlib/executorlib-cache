@@ -25,10 +25,6 @@ class FutureItem:
         return check_output(file_name=self._file_name)[0]
 
 
-def get_execute_command(file_name):
-    return ["python", "-m", "executorlib_cache", file_name]
-
-
 def execute_in_subprocess(command, task_dependent_lst=[]):
     while len(task_dependent_lst) > 0:
         task_dependent_lst = [
@@ -37,21 +33,75 @@ def execute_in_subprocess(command, task_dependent_lst=[]):
     return subprocess.Popen(command, universal_newlines=True)
 
 
-def get_hash(binary):
+def execute_tasks_h5(future_queue, cache_directory, execute_function):
+    memory_dict, process_dict, file_name_dict = {}, {}, {}
+    while True:
+        task_dict = None
+        try:
+            task_dict = future_queue.get_nowait()
+        except queue.Empty:
+            pass
+        if (
+            task_dict is not None
+            and "shutdown" in task_dict.keys()
+            and task_dict["shutdown"]
+        ):
+            future_queue.task_done()
+            future_queue.join()
+            break
+        elif task_dict is not None:
+            task_args, task_kwargs, future_wait_key_lst = _convert_args_and_kwargs(
+                task_dict=task_dict,
+                memory_dict=memory_dict,
+                file_name_dict=file_name_dict,
+            )
+            task_key, data_dict = _serialize_funct_h5(
+                task_dict["fn"], *task_args, **task_kwargs
+            )
+            if task_key not in memory_dict.keys():
+                if task_key + ".h5out" not in os.listdir(cache_directory):
+                    file_name = os.path.join(cache_directory, task_key + ".h5in")
+                    dump(file_name=file_name, data_dict=data_dict)
+                    process_dict[task_key] = execute_function(
+                        command=_get_execute_command(file_name=file_name),
+                        task_dependent_lst=[
+                            process_dict[k] for k in future_wait_key_lst
+                        ],
+                    )
+                file_name_dict[task_key] = os.path.join(
+                    cache_directory, task_key + ".h5out"
+                )
+                memory_dict[task_key] = task_dict["future"]
+            future_queue.task_done()
+        else:
+            memory_dict = {
+                key: _check_task_output(
+                    task_key=key, future_obj=value, cache_directory=cache_directory
+                )
+                for key, value in memory_dict.items()
+                if not value.done()
+            }
+
+
+def _get_execute_command(file_name):
+    return ["python", "-m", "executorlib_cache", file_name]
+
+
+def _get_hash(binary):
     # Remove specification of jupyter kernel from hash to be deterministic
     binary_no_ipykernel = re.sub(b"(?<=/ipykernel_)(.*)(?=/)", b"", binary)
     return str(hashlib.md5(binary_no_ipykernel).hexdigest())
 
 
-def serialize_funct_h5(fn, *args, **kwargs):
+def _serialize_funct_h5(fn, *args, **kwargs):
     binary_funct = cloudpickle.dumps(fn)
     binary_all = cloudpickle.dumps({"fn": fn, "args": args, "kwargs": kwargs})
-    task_key = fn.__name__ + get_hash(binary=binary_all)
+    task_key = fn.__name__ + _get_hash(binary=binary_all)
     data = {"fn": binary_funct, "args": args, "kwargs": kwargs}
     return task_key, data
 
 
-def check_task_output(task_key, future_obj, cache_directory):
+def _check_task_output(task_key, future_obj, cache_directory):
     file_name = os.path.join(cache_directory, task_key + ".h5out")
     if not os.path.exists(file_name):
         return future_obj
@@ -61,14 +111,7 @@ def check_task_output(task_key, future_obj, cache_directory):
     return future_obj
 
 
-def convert_future(future_obj, memory_dict, file_name_dict):
-    for k, v in memory_dict.items():
-        if future_obj == v:
-            return FutureItem(file_name=file_name_dict[k])
-    return future_obj.result()
-
-
-def convert_args_and_kwargs(task_dict, memory_dict, file_name_dict):
+def _convert_args_and_kwargs(task_dict, memory_dict, file_name_dict):
     task_args = []
     task_kwargs = {}
     future_wait_key_lst = []
@@ -99,53 +142,3 @@ def convert_args_and_kwargs(task_dict, memory_dict, file_name_dict):
         else:
             task_kwargs[key] = arg
     return task_args, task_kwargs, future_wait_key_lst
-
-
-def execute_tasks_h5(future_queue, cache_directory, execute_function):
-    memory_dict, process_dict, file_name_dict = {}, {}, {}
-    while True:
-        task_dict = None
-        try:
-            task_dict = future_queue.get_nowait()
-        except queue.Empty:
-            pass
-        if (
-            task_dict is not None
-            and "shutdown" in task_dict.keys()
-            and task_dict["shutdown"]
-        ):
-            future_queue.task_done()
-            future_queue.join()
-            break
-        elif task_dict is not None:
-            task_args, task_kwargs, future_wait_key_lst = convert_args_and_kwargs(
-                task_dict=task_dict,
-                memory_dict=memory_dict,
-                file_name_dict=file_name_dict,
-            )
-            task_key, data_dict = serialize_funct_h5(
-                task_dict["fn"], *task_args, **task_kwargs
-            )
-            if task_key not in memory_dict.keys():
-                if task_key + ".h5out" not in os.listdir(cache_directory):
-                    file_name = os.path.join(cache_directory, task_key + ".h5in")
-                    dump(file_name=file_name, data_dict=data_dict)
-                    process_dict[task_key] = execute_function(
-                        command=get_execute_command(file_name=file_name),
-                        task_dependent_lst=[
-                            process_dict[k] for k in future_wait_key_lst
-                        ],
-                    )
-                file_name_dict[task_key] = os.path.join(
-                    cache_directory, task_key + ".h5out"
-                )
-                memory_dict[task_key] = task_dict["future"]
-            future_queue.task_done()
-        else:
-            memory_dict = {
-                key: check_task_output(
-                    task_key=key, future_obj=value, cache_directory=cache_directory
-                )
-                for key, value in memory_dict.items()
-                if not value.done()
-            }
