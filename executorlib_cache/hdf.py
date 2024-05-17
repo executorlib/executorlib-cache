@@ -78,6 +78,8 @@ def load(file_name):
 def check_output(file_name):
     with h5py.File(file_name, "r") as hdf:
         if "output" in hdf:
-            return True, cloudpickle.loads(h5io.read_hdf5(fname=hdf, title="output", slash="ignore"))
+            return True, cloudpickle.loads(
+                h5io.read_hdf5(fname=hdf, title="output", slash="ignore")
+            )
         else:
             return False, None
