@@ -1,5 +1,3 @@
-from typing import Optional, Tuple
-
 import cloudpickle
 import h5io
 import h5py
@@ -93,7 +91,7 @@ def load(file_name: str) -> dict:
             raise TypeError
 
 
-def check_output(file_name: str) -> Tuple[bool, Optional]:
+def check_output(file_name: str):
     """
     Check if output is available in the HDF5 file
 
