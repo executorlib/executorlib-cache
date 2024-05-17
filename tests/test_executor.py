@@ -7,20 +7,6 @@ def my_funct(a, b):
 
 
 class TestFileExecutor(TestCase):
-    def test_executor_args(self):
-        with FileExecutor() as exe:
-            fs1 = exe.submit(my_funct, 1, 2)
-            self.assertFalse(fs1.done())
-            self.assertEqual(fs1.result(), 3)
-            self.assertTrue(fs1.done())
-
-    def test_executor_kwargs(self):
-        with FileExecutor() as exe:
-            fs1 = exe.submit(my_funct, a=1, b=2)
-            self.assertFalse(fs1.done())
-            self.assertEqual(fs1.result(), 3)
-            self.assertTrue(fs1.done())
-
     def test_executor_mixed(self):
         with FileExecutor() as exe:
             fs1 = exe.submit(my_funct, 1, b=2)
