@@ -2,8 +2,6 @@ import os
 import shutil
 from unittest import TestCase
 
-import cloudpickle
-
 from executorlib_cache.hdf import dump, load
 
 
@@ -15,7 +13,7 @@ class TestSharedFunctions(TestCase):
     def test_hdf_mixed(self):
         cache_directory = os.path.abspath("cache")
         os.makedirs(cache_directory, exist_ok=True)
-        file_name = os.path.join(cache_directory, "test.h5")
+        file_name = os.path.join(cache_directory, "test_mixed.h5")
         a = 1
         b = 2
         dump(
@@ -30,7 +28,7 @@ class TestSharedFunctions(TestCase):
     def test_hdf_args(self):
         cache_directory = os.path.abspath("cache")
         os.makedirs(cache_directory, exist_ok=True)
-        file_name = os.path.join(cache_directory, "test.h5")
+        file_name = os.path.join(cache_directory, "test_args.h5")
         a = 1
         b = 2
         dump(
@@ -45,7 +43,7 @@ class TestSharedFunctions(TestCase):
     def test_hdf_kwargs(self):
         cache_directory = os.path.abspath("cache")
         os.makedirs(cache_directory, exist_ok=True)
-        file_name = os.path.join(cache_directory, "test.h5")
+        file_name = os.path.join(cache_directory, "test_kwargs.h5")
         a = 1
         b = 2
         dump(
