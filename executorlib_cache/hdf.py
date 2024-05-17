@@ -19,7 +19,7 @@ def dump(file_name: str, data_dict: dict):
             if data_key == "fn":
                 h5io.write_hdf5(
                     fname=fname,
-                    data=np.void(data_value),
+                    data=np.void(cloudpickle.dumps(data_value)),
                     overwrite="update",
                     title="function",
                 )

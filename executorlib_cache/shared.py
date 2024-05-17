@@ -94,10 +94,9 @@ def _get_hash(binary):
 
 
 def _serialize_funct_h5(fn, *args, **kwargs):
-    binary_funct = cloudpickle.dumps(fn)
     binary_all = cloudpickle.dumps({"fn": fn, "args": args, "kwargs": kwargs})
     task_key = fn.__name__ + _get_hash(binary=binary_all)
-    data = {"fn": binary_funct, "args": args, "kwargs": kwargs}
+    data = {"fn": fn, "args": args, "kwargs": kwargs}
     return task_key, data
 
 

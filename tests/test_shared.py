@@ -2,7 +2,8 @@ from concurrent.futures import Future
 import os
 import shutil
 from unittest import TestCase
-from executorlib_cache.shared import _check_task_output, _serialize_funct_h5, dump
+from executorlib_cache.hdf import dump
+from executorlib_cache.shared import FutureItem, _check_task_output, _serialize_funct_h5
 from executorlib_cache.backend import execute_task_in_file
 
 
@@ -26,6 +27,9 @@ class TestSharedFunctions(TestCase):
         )
         self.assertTrue(future_obj.done())
         self.assertEqual(future_obj.result(), 3)
+        future_file_obj = FutureItem(file_name=os.path.join(cache_directory, task_key + ".h5out"))
+        self.assertTrue(future_file_obj.done())
+        self.assertEqual(future_file_obj.result(), 3)
 
     def test_execute_function_args(self):
         cache_directory = os.path.abspath("cache")
@@ -42,6 +46,9 @@ class TestSharedFunctions(TestCase):
         )
         self.assertTrue(future_obj.done())
         self.assertEqual(future_obj.result(), 3)
+        future_file_obj = FutureItem(file_name=os.path.join(cache_directory, task_key + ".h5out"))
+        self.assertTrue(future_file_obj.done())
+        self.assertEqual(future_file_obj.result(), 3)
 
     def test_execute_function_kwargs(self):
         cache_directory = os.path.abspath("cache")
@@ -58,6 +65,9 @@ class TestSharedFunctions(TestCase):
         )
         self.assertTrue(future_obj.done())
         self.assertEqual(future_obj.result(), 3)
+        future_file_obj = FutureItem(file_name=os.path.join(cache_directory, task_key + ".h5out"))
+        self.assertTrue(future_file_obj.done())
+        self.assertEqual(future_file_obj.result(), 3)
 
     def tearDown(self):
         if os.path.exists("cache"):
