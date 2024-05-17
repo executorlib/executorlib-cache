@@ -1,5 +1,6 @@
 from concurrent.futures import Future
 import os
+import shutil
 from unittest import TestCase
 from executorlib_cache.shared import check_output, serialize_funct_h5, write_to_h5_file
 from executorlib_cache.backend import execute_hdf5_file
@@ -57,3 +58,7 @@ class TestSharedFunctions(TestCase):
         )
         self.assertTrue(future_obj.done())
         self.assertEqual(future_obj.result(), 3)
+
+    def tearDown(self):
+        if os.path.exists("cache"):
+            shutil.rmtree("cache")

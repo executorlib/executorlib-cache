@@ -1,3 +1,5 @@
+import os
+import shutil
 from unittest import TestCase
 from executorlib_cache import FileExecutor
 
@@ -13,3 +15,7 @@ class TestFileExecutor(TestCase):
             self.assertFalse(fs1.done())
             self.assertEqual(fs1.result(), 3)
             self.assertTrue(fs1.done())
+
+    def tearDown(self):
+        if os.path.exists("cache"):
+            shutil.rmtree("cache")
