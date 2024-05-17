@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import cloudpickle
 import h5io
 import h5py
@@ -91,7 +93,7 @@ def load(file_name: str) -> dict:
             raise TypeError
 
 
-def check_output(file_name: str):
+def get_output(file_name: str) -> Tuple[bool, object]:
     """
     Check if output is available in the HDF5 file
 
@@ -99,7 +101,7 @@ def check_output(file_name: str):
         file_name (str): file name of the HDF5 file as absolute path
 
     Returns:
-        (bool, ...): boolean flag if output is available and the output itself
+        (bool, object): boolean flag if output is available and the output object itself
     """
     with h5py.File(file_name, "r") as hdf:
         if "output" in hdf:

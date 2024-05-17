@@ -7,7 +7,7 @@ import subprocess
 
 import cloudpickle
 
-from executorlib_cache.hdf import dump, check_output
+from executorlib_cache.hdf import dump, get_output
 
 
 class FutureItem:
@@ -15,14 +15,14 @@ class FutureItem:
         self._file_name = file_name
 
     def result(self):
-        exec_flag, result = check_output(file_name=self._file_name)
+        exec_flag, result = get_output(file_name=self._file_name)
         if exec_flag:
             return result
         else:
             return self.result()
 
     def done(self):
-        return check_output(file_name=self._file_name)[0]
+        return get_output(file_name=self._file_name)[0]
 
 
 def execute_in_subprocess(command, task_dependent_lst=[]):
@@ -105,7 +105,7 @@ def _check_task_output(task_key, future_obj, cache_directory):
     file_name = os.path.join(cache_directory, task_key + ".h5out")
     if not os.path.exists(file_name):
         return future_obj
-    exec_flag, result = check_output(file_name=file_name)
+    exec_flag, result = get_output(file_name=file_name)
     if exec_flag:
         future_obj.set_result(result)
     return future_obj
