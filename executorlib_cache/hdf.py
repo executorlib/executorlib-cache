@@ -77,8 +77,8 @@ def load(file_name: str) -> dict:
             raise TypeError
         if "input_args" in hdf:
             data_dict["args"] = [
-                h5io.read_hdf5(fname=hdf, title="input_args/" + k, slash="ignore")
-                for k in hdf["input_args"].keys()
+                h5io.read_hdf5(fname=hdf, title="input_args/" + str(k), slash="ignore")
+                for k in sorted([int(k) for k in hdf["input_args"].keys()])
             ]
         else:
             data_dict["args"] = ()
