@@ -22,12 +22,38 @@ def dump(file_name: str, data_dict: dict):
     }
     with h5py.File(file_name, "a") as fname:
         for data_key, data_value in data_dict.items():
-            if data_key in group_dict.keys():
+            if data_key == "fn":
                 h5io.write_hdf5(
                     fname=fname,
                     data=np.void(cloudpickle.dumps(data_value)),
                     overwrite="update",
                     title=group_dict[data_key],
+                )
+            elif data_key == "args":
+                for k, v in enumerate(data_value):
+                    h5io.write_hdf5(
+                        fname=fname,
+                        data=v,
+                        overwrite="update",
+                        title=group_dict[data_key] + "/" + str(k),
+                        use_state=True,
+                    )
+            elif data_key == "kwargs":
+                for k, v in data_value.items():
+                    h5io.write_hdf5(
+                        fname=fname,
+                        data=v,
+                        overwrite="update",
+                        title=group_dict[data_key] + "/" + k,
+                        use_state=True,
+                    )
+            elif data_key == "output":
+                h5io.write_hdf5(
+                    fname=fname,
+                    data=data_value,
+                    overwrite="update",
+                    title=group_dict[data_key],
+                    use_state=True,
                 )
 
 
@@ -50,15 +76,17 @@ def load(file_name: str) -> dict:
         else:
             raise TypeError
         if "input_args" in hdf:
-            data_dict["args"] = cloudpickle.loads(
-                h5io.read_hdf5(fname=hdf, title="input_args", slash="ignore")
-            )
+            data_dict["args"] = [
+                h5io.read_hdf5(fname=hdf, title="input_args/" + k, slash="ignore")
+                for k in hdf["input_args"].keys()
+            ]
         else:
             data_dict["args"] = ()
         if "input_kwargs" in hdf:
-            data_dict["kwargs"] = cloudpickle.loads(
-                h5io.read_hdf5(fname=hdf, title="input_kwargs", slash="ignore")
-            )
+            data_dict["kwargs"] = {
+                k: h5io.read_hdf5(fname=hdf, title="input_kwargs/" + k, slash="ignore")
+                for k in hdf["input_kwargs"].keys()
+            }
         else:
             data_dict["kwargs"] = {}
         return data_dict
@@ -76,8 +104,6 @@ def get_output(file_name: str) -> Tuple[bool, object]:
     """
     with h5py.File(file_name, "r") as hdf:
         if "output" in hdf:
-            return True, cloudpickle.loads(
-                h5io.read_hdf5(fname=hdf, title="output", slash="ignore")
-            )
+            return True, h5io.read_hdf5(fname=hdf, title="output", slash="ignore")
         else:
             return False, None
