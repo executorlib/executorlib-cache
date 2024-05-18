@@ -40,6 +40,20 @@ class TestSharedFunctions(TestCase):
         self.assertEqual(data_dict["args"], [a, b])
         self.assertEqual(data_dict["kwargs"], {})
 
+    def test_hdf_args_order(self):
+        cache_directory = os.path.abspath("cache")
+        os.makedirs(cache_directory, exist_ok=True)
+        file_name = os.path.join(cache_directory, "test_args.h5")
+        lst = list(range(11))
+        dump(
+            file_name=file_name,
+            data_dict={"fn": my_funct, "args": lst}
+        )
+        data_dict = load(file_name=file_name)
+        self.assertTrue("fn" in data_dict.keys())
+        self.assertEqual(data_dict["args"], lst)
+        self.assertEqual(data_dict["kwargs"], {})
+
     def test_hdf_kwargs(self):
         cache_directory = os.path.abspath("cache")
         os.makedirs(cache_directory, exist_ok=True)
